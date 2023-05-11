@@ -3,7 +3,7 @@ from main_window import MainWindow
 
 if __name__ == "__main__":
     app = QApplication([])
-    QApplication.setStyle(QStyleFactory.create("Fusion"))
+    QApplication.setStyle(QStyleFactory.create("fusion"))
 
     win = MainWindow()
     win.resize(1280, 800)
