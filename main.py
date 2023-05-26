@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QStyleFactory
+from PyQt6.QtWidgets import QApplication, QStyleFactory
 from main_window import MainWindow
 
 if __name__ == "__main__":
@@ -9,4 +9,4 @@ if __name__ == "__main__":
     win.resize(1280, 800)
     win.show()
 
-    app.exec_()
+    app.exec()

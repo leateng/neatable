@@ -1,21 +1,137 @@
-from PyQt5 import QtCore
-from PyQt5.QtGui import QColor, QFont, QKeyEvent, QPainter
-from PyQt5.Qsci import QsciLexerSQL, QsciScintilla, QsciScintillaBase
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget
 import sqlglot
+from PyQt6 import QtCore, QtWidgets
+from PyQt6.Qsci import QsciLexerCustom
+from PyQt6.Qsci import QsciLexerSQL
+from PyQt6.Qsci import QsciScintilla
+from PyQt6.Qsci import QsciScintillaBase
+from PyQt6.QtGui import QColor, QPainter, QWheelEvent
+from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QKeyEvent
+from PyQt6.QtWidgets import QMainWindow
+from PyQt6.QtWidgets import QVBoxLayout
+from PyQt6.QtWidgets import QWidget
+from IPython import embed
+
+
+class LexerSQL(QsciLexerCustom):
+    def __init__(self, parent=None):
+        super(LexerSQL, self).__init__(parent)
+        self._init_styles()
+
+    def language(self):
+        return "SQL"
+
+    def description(self, style_nr):
+        if style_nr == 0:
+            return "myStyle_0"
+        elif style_nr == 1:
+            return "myStyle_1"
+        elif style_nr == 2:
+            return "myStyle_2"
+        else:
+            return ""
+
+    # Called everytime the editors text has changed
+    def styleText(self, start, end):
+        # 1. Reset the internal counter
+        # ------------------------------
+        self.startStyling(0)
+        text = self.parent().text()[start:end]
+        print(f"styleText: ({start}:{end}) {text}")
+
+        # 2. Highlight the text
+        # ----------------------
+        self.setStyling(0, 0)
+        self.setStyling(8, 1)
+        self.setStyling(12, 2)
+        self.setStyling(3, 0)
+        self.setStyling(46, 1)
+        self.setStyling(2, 2)
+        self.setStyling(12, 0)
+        self.setStyling(30, 1)
+        self.setStyling(25, 2)
+        self.setStyling(7, 0)
+        self.setStyling(15, 1)
+        self.setStyling(3, 2)
+
+    def _init_styles(self):
+        self.font1 = QFont("FiraCode Nerd Font Mono", 12)
+        self.font1.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
+
+        # Default text settings
+        # ----------------------
+        self.setDefaultColor(QColor("#ff000000"))
+        self.setDefaultPaper(QColor("#ffffffff"))
+        self.setDefaultFont(self.font1)
+
+        # Initialize colors per style
+        # ----------------------------
+        self.setColor(QColor("#ff000000"), 0)  # Style 0: black
+        self.setColor(QColor("#ff7f0000"), 1)  # Style 1: red
+        self.setColor(QColor("#ff0000bf"), 2)  # Style 2: blue
+
+        # Initialize paper colors per style
+        # ----------------------------------
+        self.setPaper(QColor("#ffffffff"), 0)  # Style 0: white
+        self.setPaper(QColor("#ffffffff"), 1)  # Style 1: white
+        self.setPaper(QColor("#ffffffff"), 2)  # Style 2: white
+
+        # Initialize fonts per style
+        # ---------------------------
+        # Style 0: 14pt bold
+        self.setFont(QFont("Consolas", 12, weight=QFont.Weight.Normal), 0)
+        # Style 1: 14pt bold
+        self.setFont(QFont("Consolas", 12, weight=QFont.Weight.Bold), 1)
+        # Style 2: 14pt bold
+        self.setFont(QFont("Consolas", 12, weight=QFont.Weight.Bold), 2)
+
+
+class EditorWidget(QsciScintilla):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        # format sql
+        if event.key() == QtCore.Qt.Key.Key_F5:
+            if self.hasFocus() and self.hasSelectedText():
+                sel_text = self.selectedText()
+                try:
+                    result = sqlglot.transpile(
+                        sel_text,
+                        read="postgres",
+                        pretty=True,
+                        error_level=sqlglot.ErrorLevel.IMMEDIATE,
+                    )
+                except BaseException as ex:
+                    print(ex)
+                    return
+
+                pretty_sql = ";\n\n".join(result)
+                self.replaceSelectedText(pretty_sql)
+                event.accept()
+        else:
+            super().keyPressEvent(event)
+
+    def wheelEvent(self, event: QWheelEvent):
+        super().wheelEvent(event)
+        if event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier:
+            self.linesChanged.emit()
 
 
 class SqlEditor(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self._layout = QVBoxLayout()
-        self.editor = QsciScintilla()
-        self.font = QFont("FiraCode Nerd Font Mono", 12)
-        self.lexer = QsciLexerSQL()
-        self.lexer.setFont(self.font)
+        self.editor = EditorWidget()
+        self.editor.setEolMode(QsciScintilla.EolMode.EolUnix)
+        # self.font = QFont("FiraCode Nerd Font Mono", 12)
+        # self.lexer = QsciLexerSQL()
+        self.lexer = LexerSQL(self.editor)
+        self.editor.setLexer(self.lexer)
+        # self.lexer.setFont(self.font)
 
         self.editor.setUtf8(True)
-        self.editor.setFont(self.font)
+        # self.editor.setFont(self.font)
         self.editor.setWrapMode(QsciScintilla.WrapMode.WrapWord)
         self.editor.setWrapVisualFlags(
             QsciScintilla.WrapVisualFlag.WrapFlagByBorder,
@@ -34,34 +150,13 @@ class SqlEditor(QWidget):
         self.editor.setMarginWidth(0, "00")
         self.editor.setMarginsForegroundColor(QColor("#ff888888"))
         self.editor.setMarginsBackgroundColor(QColor("#FFFFFF"))
-        self.editor.setLexer(self.lexer)
-        self.editor.linesChanged.connect(self.on_lines_changed)
+
+        self.editor.linesChanged.connect(self.onLinesChanged)
 
         self._layout.addWidget(self.editor)
         self.setLayout(self._layout)
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        # format sql
-        if event.key() == QtCore.Qt.Key.Key_F5:
-            if self.editor.hasFocus() and self.editor.hasSelectedText():
-                sel_text = self.editor.selectedText()
-                try:
-                    result = sqlglot.transpile(
-                        sel_text,
-                        read="postgres",
-                        pretty=True,
-                        error_level=sqlglot.ErrorLevel.IMMEDIATE,
-                    )
-                except BaseException as ex:
-                    print(ex)
-                    return
-
-                pretty_sql = ";\n\n".join(result)
-                self.editor.replaceSelectedText(pretty_sql)
-        else:
-            super().keyPressEvent(event)
-
-    def on_lines_changed(self) -> None:
+    def onLinesChanged(self) -> None:
         line_number = self.editor.lines()
         line_number_width = len(str(line_number))
         current_margin_width = self.editor.marginWidth(0)
