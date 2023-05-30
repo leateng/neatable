@@ -12,9 +12,10 @@ from PyQt6.QtWidgets import QVBoxLayout
 from PyQt6.QtWidgets import QWidget
 from tree_sitter import Language
 from tree_sitter import Parser
+import re
 
 
-from IPython import embed
+# from IPython import embed
 
 
 class LexerSQL(QsciLexerCustom):
@@ -22,6 +23,7 @@ class LexerSQL(QsciLexerCustom):
         super(LexerSQL, self).__init__(parent)
         self._init_styles()
         self._init_parser()
+        self.sql_keyword_reg = re.compile("keyword_\w+")
 
     def language(self):
         return "SQL"
@@ -38,54 +40,23 @@ class LexerSQL(QsciLexerCustom):
 
     # Called everytime the editors text has changed
     def styleText(self, start, end):
-        # # 1. Reset the internal counter
-        # # ------------------------------
-        # self.startStyling(0)
-        #
-        # # 2. Highlight the text
-        # # ----------------------
-        # self.setStyling(0, 0)
-        # self.setStyling(8, 1)
-        # self.setStyling(12, 2)
-        # self.setStyling(3, 0)
-        # self.setStyling(46, 1)
-        # self.setStyling(2, 2)
-        # self.setStyling(12, 0)
-        # self.setStyling(30, 1)
-        # self.setStyling(25, 2)
-        # self.setStyling(7, 0)
-        # self.setStyling(15, 1)
-        # self.setStyling(3, 2)
-
         text = self.parent().text()
         tree = self.parser.parse(bytes(text, "utf8"))
         self.syntaxStyling(tree)
 
     def syntaxStyling(self, syntax_tree):
         self.startStyling(0)
-        self.setStyling(0, 0)
-        self.setStyling(8, 0)
-        self.setStyling(9, 2)
-        # self.setStyling(0, 0)
-        # self.setStyling(5, 2)
-        # embed()
-        # self.traverse(syntax_tree.root_node)
+        self.traverse(syntax_tree.root_node)
 
     def traverse(self, node):
-        print(f"{node.type}: {node.text}({node.start_byte}, {node.end_byte})")
+        # print(f"{node.type}: {node.text}({node.start_byte}, {node.end_byte})")
 
-        # self.startStyling(0)
-
-        if (
-            node.type == "keyword_select"
-            or node.type == "keyword_from"
-            or node.type == "keyword_limit"
-        ):
-            self.setStyling(node.start_byte, 0)
-            self.setStyling(node.end_byte, 2)
-        else:
-            self.setStyling(node.start_byte, 0)
-            self.setStyling(node.end_byte, 0)
+        if self.sql_keyword_reg.match(node.type):
+            self.startStyling(node.start_byte, 0)
+            self.setStyling(node.end_byte - node.start_byte, 2)
+        elif node.type == "table_reference":
+            self.startStyling(node.start_byte, 0)
+            self.setStyling(node.end_byte - node.start_byte, 1)
 
         for child in node.children:
             self.traverse(child)
