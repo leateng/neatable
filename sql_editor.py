@@ -37,6 +37,8 @@ class LexerSQL(QsciLexerCustom):
             return "myStyle_2"
         elif style_nr == 3:
             return "myStyle_3"
+        elif style_nr == 4:
+            return "myStyle_4"
         else:
             return ""
 
@@ -52,7 +54,6 @@ class LexerSQL(QsciLexerCustom):
 
     def traverse(self, node):
         # print(f"{node.type}: {node.text}({node.start_byte}, {node.end_byte})")
-
         if self.sql_keyword_reg.match(node.type):
             self.startStyling(node.start_byte, 0)
             self.setStyling(node.end_byte - node.start_byte, 2)
@@ -62,6 +63,9 @@ class LexerSQL(QsciLexerCustom):
         elif node.type == "literal":
             self.startStyling(node.start_byte, 0)
             self.setStyling(node.end_byte - node.start_byte, 3)
+        elif node.type == "comment" or node.type == "marginalia":
+            self.startStyling(node.start_byte, 0)
+            self.setStyling(node.end_byte - node.start_byte, 4)
 
         for child in node.children:
             self.traverse(child)
@@ -82,6 +86,7 @@ class LexerSQL(QsciLexerCustom):
         self.setColor(QColor("#ff7f0000"), 1)  # Style 1: red
         self.setColor(QColor("#ff0000bf"), 2)  # Style 2: blue
         self.setColor(QColor("#ff067d17"), 3)  # Style 3: green
+        self.setColor(QColor("#ffb0b0b0"), 4)  # Style 3: green
 
         # Initialize paper colors per style
         # ----------------------------------
@@ -89,6 +94,7 @@ class LexerSQL(QsciLexerCustom):
         self.setPaper(QColor("#ffffffff"), 1)  # Style 1: white
         self.setPaper(QColor("#ffffffff"), 2)  # Style 2: white
         self.setPaper(QColor("#ffffffff"), 3)  # Style 3: white
+        self.setPaper(QColor("#ffffffff"), 4)  # Style 3: white
 
         # Initialize fonts per style
         # ---------------------------
@@ -99,6 +105,7 @@ class LexerSQL(QsciLexerCustom):
         # Style 2: 14pt bold
         self.setFont(QFont("Consolas", 12, weight=QFont.Weight.Bold), 2)
         self.setFont(QFont("Consolas", 12, weight=QFont.Weight.Normal), 3)
+        self.setFont(QFont("Consolas", 12, weight=QFont.Weight.Normal), 4)
 
     def _init_parser(self):
         lang = Language("parser/sql.dll", "sql")
