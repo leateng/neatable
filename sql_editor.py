@@ -35,6 +35,8 @@ class LexerSQL(QsciLexerCustom):
             return "myStyle_1"
         elif style_nr == 2:
             return "myStyle_2"
+        elif style_nr == 3:
+            return "myStyle_3"
         else:
             return ""
 
@@ -57,6 +59,9 @@ class LexerSQL(QsciLexerCustom):
         elif node.type == "table_reference":
             self.startStyling(node.start_byte, 0)
             self.setStyling(node.end_byte - node.start_byte, 1)
+        elif node.type == "literal":
+            self.startStyling(node.start_byte, 0)
+            self.setStyling(node.end_byte - node.start_byte, 3)
 
         for child in node.children:
             self.traverse(child)
@@ -76,12 +81,14 @@ class LexerSQL(QsciLexerCustom):
         self.setColor(QColor("#ff000000"), 0)  # Style 0: black
         self.setColor(QColor("#ff7f0000"), 1)  # Style 1: red
         self.setColor(QColor("#ff0000bf"), 2)  # Style 2: blue
+        self.setColor(QColor("#ff00bf00"), 3)  # Style 3: green
 
         # Initialize paper colors per style
         # ----------------------------------
         self.setPaper(QColor("#ffffffff"), 0)  # Style 0: white
         self.setPaper(QColor("#ffffffff"), 1)  # Style 1: white
         self.setPaper(QColor("#ffffffff"), 2)  # Style 2: white
+        self.setPaper(QColor("#ffffffff"), 3)  # Style 3: white
 
         # Initialize fonts per style
         # ---------------------------
@@ -91,6 +98,7 @@ class LexerSQL(QsciLexerCustom):
         self.setFont(QFont("Consolas", 12, weight=QFont.Weight.Bold), 1)
         # Style 2: 14pt bold
         self.setFont(QFont("Consolas", 12, weight=QFont.Weight.Bold), 2)
+        self.setFont(QFont("Consolas", 12, weight=QFont.Weight.Normal), 3)
 
     def _init_parser(self):
         lang = Language("parser/sql.dll", "sql")
