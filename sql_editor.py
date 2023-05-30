@@ -81,7 +81,7 @@ class LexerSQL(QsciLexerCustom):
         self.setColor(QColor("#ff000000"), 0)  # Style 0: black
         self.setColor(QColor("#ff7f0000"), 1)  # Style 1: red
         self.setColor(QColor("#ff0000bf"), 2)  # Style 2: blue
-        self.setColor(QColor("#ff00bf00"), 3)  # Style 3: green
+        self.setColor(QColor("#ff067d17"), 3)  # Style 3: green
 
         # Initialize paper colors per style
         # ----------------------------------
