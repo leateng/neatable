@@ -1,3 +1,4 @@
+from types import NoneType
 import sqlglot
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.Qsci import QsciLexerCustom
@@ -14,16 +15,17 @@ from tree_sitter import Language
 from tree_sitter import Parser
 import re
 
-
+# import time
 # from IPython import embed
 
 
 class LexerSQL(QsciLexerCustom):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QsciScintilla | NoneType = None):
         super(LexerSQL, self).__init__(parent)
         self._init_styles()
         self._init_parser()
-        self.sql_keyword_reg = re.compile("keyword_\w+")
+        self.sql_keyword_reg = re.compile("keyword_\\w+")
+        self.tree = None
 
     def language(self):
         return "SQL"
@@ -45,15 +47,30 @@ class LexerSQL(QsciLexerCustom):
     # Called everytime the editors text has changed
     def styleText(self, start, end):
         text = self.parent().text()
-        tree = self.parser.parse(bytes(text, "utf8"))
-        self.syntaxStyling(tree)
+        edit_text = text[start:end]
+
+        # print("========================")
+        # print(f"text={text}")
+        # print(f"edit_text={edit_text}")
+
+        if edit_text.strip() == "":
+            return
+
+        t1 = time.time_ns()
+        if self.tree is None:
+            self.tree = self.parser.parse(bytes(text, "utf8"))
+        else:
+            self.tree = self.parser.parse(bytes(text, "utf8"))
+
+        self.syntaxStyling(self.tree)
+        # print(f"time: {(time.time_ns() - t1)/1000000}")
 
     def syntaxStyling(self, syntax_tree):
         self.startStyling(0)
         self.traverse(syntax_tree.root_node)
 
     def traverse(self, node):
-        # print(f"{node.type}: {node.text}({node.start_byte}, {node.end_byte})")
+        # print(f"{node.type}: {node.text}({node.start_byte}, {node.end styleText_byte})")
         if self.sql_keyword_reg.match(node.type):
             self.startStyling(node.start_byte, 0)
             self.setStyling(node.end_byte - node.start_byte, 2)
@@ -66,6 +83,9 @@ class LexerSQL(QsciLexerCustom):
         elif node.type == "comment" or node.type == "marginalia":
             self.startStyling(node.start_byte, 0)
             self.setStyling(node.end_byte - node.start_byte, 4)
+        else:
+            self.startStyling(node.start_byte, 0)
+            self.setStyling(node.end_byte - node.start_byte, 0)
 
         for child in node.children:
             self.traverse(child)
@@ -136,6 +156,10 @@ class EditorWidget(QsciScintilla):
                 pretty_sql = ";\n\n".join(result)
                 self.replaceSelectedText(pretty_sql)
                 event.accept()
+        elif event.key() == QtCore.Qt.Key.Key_ParenLeft:
+            (line, col) = self.getCursorPosition()
+            self.insert("()")
+            self.setCursorPosition(line, col + 1)
         else:
             super().keyPressEvent(event)
 
