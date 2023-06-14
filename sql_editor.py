@@ -5,7 +5,7 @@ from PyQt6.Qsci import QsciLexerCustom
 from PyQt6.Qsci import QsciLexerSQL
 from PyQt6.Qsci import QsciScintilla
 from PyQt6.Qsci import QsciScintillaBase
-from PyQt6.QtGui import QColor, QPainter, QWheelEvent
+from PyQt6.QtGui import QColor, QPaintEvent, QPainter, QPixmap, QWheelEvent
 from PyQt6.QtGui import QFont
 from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QMainWindow
@@ -15,7 +15,8 @@ from tree_sitter import Language
 from tree_sitter import Parser
 import re
 
-# import time
+import time
+
 # from IPython import embed
 
 
@@ -49,9 +50,9 @@ class LexerSQL(QsciLexerCustom):
         text = self.parent().text()
         edit_text = text[start:end]
 
-        # print("========================")
-        # print(f"text={text}")
-        # print(f"edit_text={edit_text}")
+        print("========================")
+        print(f"text={text}")
+        print(f"edit_text={edit_text}")
 
         if edit_text.strip() == "":
             return
@@ -137,6 +138,26 @@ class EditorWidget(QsciScintilla):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
+        # autocomplation options
+        self.setAutoCompletionSource(QsciScintilla.AutoCompletionSource.AcsAll)
+        self.setAutoCompletionUseSingle(
+            QsciScintilla.AutoCompletionUseSingle.AcusExplicit
+        )
+        self.setAutoCompletionThreshold(1)
+        self.setAutoCompletionCaseSensitivity(False)
+        self.setAutoCompletionReplaceWord(False)
+
+        # end of line mode
+        self.setEolMode(QsciScintilla.EolMode.EolUnix)
+
+        # tab width
+        self.setTabWidth(4)
+
+        # indent guides
+        self.setIndentationGuides(True)
+        self.setIndentationGuidesForegroundColor(QColor("#d6d6d6"))
+        self.setIndentationGuidesBackgroundColor(QColor("#d6d6d6"))
+
     def keyPressEvent(self, event: QKeyEvent) -> None:
         # format sql
         if event.key() == QtCore.Qt.Key.Key_F5:
@@ -160,8 +181,29 @@ class EditorWidget(QsciScintilla):
             (line, col) = self.getCursorPosition()
             self.insert("()")
             self.setCursorPosition(line, col + 1)
+        # elif (
+        #     event.key() == QtCore.Qt.Key.Key_Tab
+        #     and event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier
+        # ):
+        #     self.SendScintilla(QsciScintillaBase.SCI_AUTOCCOMPLETE)
         else:
             super().keyPressEvent(event)
+
+    # def paintEvent(self, event: QPaintEvent):
+    #     if not self.isListActive():
+    #         super().paintEvent(event)
+    #     else:
+    #         pixmap = QPixmap(self.viewport().size())
+    #         painter = QPainter(pixmap)
+    #         painter.translate(
+    #             -self.horizontalScrollBar().value(), -self.verticalScrollBar().value()
+    #         )
+    #         super().paintOnDevice(painter)
+    #         self.viewport().setUpdatesEnabled(False)
+    #         super().paintEvent(event)
+    #         self.viewport().setUpdatesEnabled(True)
+    #         viewport_painter = QPainter(self.viewport())
+    #         viewport_painter.drawPixmap(0, 0, pixmap)
 
     def wheelEvent(self, event: QWheelEvent):
         super().wheelEvent(event)
@@ -203,6 +245,7 @@ class SqlEditor(QWidget):
         self.editor.setMarginsBackgroundColor(QColor("#FFFFFF"))
 
         self.editor.linesChanged.connect(self.onLinesChanged)
+        self.editor.textChanged.connect(self.onTextChanged)
 
         self._layout.addWidget(self.editor)
         self.setLayout(self._layout)
@@ -213,3 +256,6 @@ class SqlEditor(QWidget):
         current_margin_width = self.editor.marginWidth(0)
         if line_number_width != current_margin_width - 1:
             self.editor.setMarginWidth(0, "0" * (line_number_width + 1))
+
+    def onTextChanged(self):
+        print(f"text chaged")
