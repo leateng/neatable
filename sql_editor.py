@@ -50,9 +50,9 @@ class LexerSQL(QsciLexerCustom):
         text = self.parent().text()
         edit_text = text[start:end]
 
-        print("========================")
-        print(f"text={text}")
-        print(f"edit_text={edit_text}")
+        # print("========================")
+        # print(f"text={text}")
+        # print(f"edit_text={edit_text}")
 
         if edit_text.strip() == "":
             return
@@ -71,11 +71,11 @@ class LexerSQL(QsciLexerCustom):
         self.traverse(syntax_tree.root_node)
 
     def traverse(self, node):
-        # print(f"{node.type}: {node.text}({node.start_byte}, {node.end styleText_byte})")
+        print(f"{node.type}: {node.text}({node.start_byte}, {node.end_byte})")
         if self.sql_keyword_reg.match(node.type):
             self.startStyling(node.start_byte, 0)
             self.setStyling(node.end_byte - node.start_byte, 2)
-        elif node.type == "table_reference":
+        elif node.type == "table_reference" or node.type == "relation":
             self.startStyling(node.start_byte, 0)
             self.setStyling(node.end_byte - node.start_byte, 1)
         elif node.type == "literal":
