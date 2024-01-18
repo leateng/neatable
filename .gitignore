@@ -1,3 +1,4 @@
 main.dist/
 main.build/
 __pycache__/
+config.yml
